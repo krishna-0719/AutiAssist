@@ -161,6 +161,7 @@ RETURNS SETOF UUID
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
+SET search_path = public
 AS $$
   SELECT family_id FROM family_members WHERE user_id = auth.uid();
 $$;
@@ -169,105 +170,105 @@ $$;
 ALTER TABLE families ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can read families (for join by code)"
-  ON families FOR SELECT
+  ON families FOR SELECT TO public
   USING (true);
 
 CREATE POLICY "Authenticated users can create families"
-  ON families FOR INSERT
+  ON families FOR INSERT TO authenticated
   WITH CHECK (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Creators can update their families"
-  ON families FOR UPDATE
+  ON families FOR UPDATE TO authenticated
   USING (created_by = auth.uid());
 
 -- ─── requests ────────────────────────────────────────────────
 ALTER TABLE requests ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read requests"
-  ON requests FOR SELECT
+  ON requests FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Any authenticated user can create requests"
-  ON requests FOR INSERT
+  ON requests FOR INSERT TO authenticated
   WITH CHECK (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Family members can update requests"
-  ON requests FOR UPDATE
+  ON requests FOR UPDATE TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Family members can delete requests"
-  ON requests FOR DELETE
+  ON requests FOR DELETE TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 -- ─── rooms ───────────────────────────────────────────────────
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read rooms"
-  ON rooms FOR SELECT
+  ON rooms FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Authenticated users can create rooms"
-  ON rooms FOR INSERT
+  ON rooms FOR INSERT TO authenticated
   WITH CHECK (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Family members can delete rooms"
-  ON rooms FOR DELETE
+  ON rooms FOR DELETE TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 -- ─── symbols ─────────────────────────────────────────────────
 ALTER TABLE symbols ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read symbols"
-  ON symbols FOR SELECT
+  ON symbols FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Authenticated users can create symbols"
-  ON symbols FOR INSERT
+  ON symbols FOR INSERT TO authenticated
   WITH CHECK (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Family members can update symbols"
-  ON symbols FOR UPDATE
+  ON symbols FOR UPDATE TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Family members can delete symbols"
-  ON symbols FOR DELETE
+  ON symbols FOR DELETE TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 -- ─── entries ─────────────────────────────────────────────────
 ALTER TABLE entries ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read entries"
-  ON entries FOR SELECT
+  ON entries FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Authenticated users can create entries"
-  ON entries FOR INSERT
+  ON entries FOR INSERT TO authenticated
   WITH CHECK (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Creators can update entries"
-  ON entries FOR UPDATE
+  ON entries FOR UPDATE TO authenticated
   USING (user_id = auth.uid());
 
 CREATE POLICY "Creators can delete entries"
-  ON entries FOR DELETE
+  ON entries FOR DELETE TO authenticated
   USING (user_id = auth.uid());
 
 -- ─── behavior_logs ───────────────────────────────────────────
 ALTER TABLE behavior_logs ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read behavior_logs"
-  ON behavior_logs FOR SELECT
+  ON behavior_logs FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Any authenticated user can insert behavior_logs"
-  ON behavior_logs FOR INSERT
+  ON behavior_logs FOR INSERT TO authenticated
   WITH CHECK (family_id IN (SELECT get_user_family_ids()));
 
 -- ─── behavior_predictions ────────────────────────────────────
 ALTER TABLE behavior_predictions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read predictions"
-  ON behavior_predictions FOR SELECT
+  ON behavior_predictions FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 -- Server-side only writes (service_role key), no client INSERT policy needed
@@ -276,7 +277,7 @@ CREATE POLICY "Family members can read predictions"
 ALTER TABLE behavior_training_status ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read training status"
-  ON behavior_training_status FOR SELECT
+  ON behavior_training_status FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 -- Server-side only writes (service_role key)
@@ -285,7 +286,7 @@ CREATE POLICY "Family members can read training status"
 ALTER TABLE system_config ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can read system_config"
-  ON system_config FOR SELECT
+  ON system_config FOR SELECT TO public
   USING (true);
 
 
@@ -293,7 +294,7 @@ CREATE POLICY "Anyone can read system_config"
 ALTER TABLE family_members ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read family_members"
-  ON family_members FOR SELECT
+  ON family_members FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR family_id IN (SELECT get_user_family_ids()));
 
 -- ═════════════════════════════════════════════════════════════
@@ -320,6 +321,7 @@ CREATE OR REPLACE FUNCTION join_family_by_code(p_code TEXT)
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_family_id UUID;
@@ -350,6 +352,7 @@ CREATE OR REPLACE FUNCTION get_dashboard_stats(p_family_id UUID)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   result JSON;
@@ -370,6 +373,7 @@ CREATE OR REPLACE FUNCTION get_requests_by_day(p_family_id UUID)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   result JSON;
@@ -402,6 +406,7 @@ CREATE OR REPLACE FUNCTION get_requests_by_type(p_family_id UUID)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   result JSON;
@@ -423,6 +428,7 @@ CREATE OR REPLACE FUNCTION get_requests_by_room(p_family_id UUID)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   result JSON;
@@ -444,6 +450,7 @@ CREATE OR REPLACE FUNCTION get_peak_hours(p_family_id UUID)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   result JSON;
@@ -482,19 +489,19 @@ CREATE TABLE IF NOT EXISTS child_symbol_preferences (
 ALTER TABLE child_symbol_preferences ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Family members can read preferences"
-  ON child_symbol_preferences FOR SELECT
+  ON child_symbol_preferences FOR SELECT TO authenticated
   USING (family_id IN (SELECT get_user_family_ids()));
 
 CREATE POLICY "Users can create their own preferences"
-  ON child_symbol_preferences FOR INSERT
+  ON child_symbol_preferences FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update their own preferences"
-  ON child_symbol_preferences FOR UPDATE
+  ON child_symbol_preferences FOR UPDATE TO authenticated
   USING (user_id = auth.uid());
 
 CREATE POLICY "Users can delete their own preferences"
-  ON child_symbol_preferences FOR DELETE
+  ON child_symbol_preferences FOR DELETE TO authenticated
   USING (user_id = auth.uid());
 
 CREATE INDEX IF NOT EXISTS idx_child_pref_user ON child_symbol_preferences(user_id);
@@ -522,7 +529,7 @@ BEGIN
   ) THEN
     CREATE POLICY "Public Symbol Read"
     ON storage.objects FOR SELECT
-    USING ( bucket_id = 'symbols' );
+    TO public  USING ( bucket_id = 'symbols' );
   END IF;
 END $$;
 
