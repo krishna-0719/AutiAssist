@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: care-child-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"
