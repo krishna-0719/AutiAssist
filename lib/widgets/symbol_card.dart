@@ -181,7 +181,7 @@ class _SymbolCardState extends State<SymbolCard> with SingleTickerProviderStateM
                                         child: Text(
                                           widget.emoji,
                                           style: TextStyle(
-                                            fontSize: widget.compact ? 44 : 48,
+                                            fontSize: widget.compact ? 56 : 72,
                                             shadows: [
                                               Shadow(
                                                 color: Colors.black.withValues(alpha: 0.1),
@@ -209,18 +209,22 @@ class _SymbolCardState extends State<SymbolCard> with SingleTickerProviderStateM
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.label,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: widget.compact ? 13 : 15,
-                            fontWeight: FontWeight.w800,
-                            color: _isPressed ? accent : AppTheme.textDark,
-                            letterSpacing: -0.2,
-                            height: 1.1,
+                        const SizedBox(height: 4),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              widget.label,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              style: TextStyle(
+                                fontSize: widget.compact ? 13 : 15,
+                                fontWeight: FontWeight.w800,
+                                color: _isPressed ? accent : AppTheme.textDark,
+                                letterSpacing: -0.2,
+                                height: 1.1,
+                              ),
+                            ),
                           ),
                         ),
                       ],

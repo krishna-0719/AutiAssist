@@ -12,6 +12,7 @@ import '../providers/symbols_provider.dart';
 import '../services/tts_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/symbol_card.dart';
+import '../widgets/math_lock_dialog.dart';
 
 class ChildScreen extends ConsumerStatefulWidget {
   const ChildScreen({super.key});
@@ -171,7 +172,13 @@ class _ChildScreenState extends ConsumerState<ChildScreen>
     );
   }
 
-  void _openSettingsSheet() {
+  void _openSettingsSheet() async {
+    // Require parental math lock before accessing settings
+    final unlocked = await MathLockDialog.show(context);
+    if (!unlocked) return;
+
+    if (!mounted) return;
+    
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -245,12 +252,13 @@ class _ChildScreenState extends ConsumerState<ChildScreen>
 
   int _gridCount(double width) {
     if (width >= AppTheme.desktopBreakpoint) {
-      return 6;
-    }
-    if (width >= AppTheme.tabletBreakpoint) {
       return 5;
     }
-    return 4;
+    if (width >= AppTheme.tabletBreakpoint) {
+      return 4;
+    }
+    // Return 2 columns for mobile to make icons large and tappable
+    return 2;
   }
 
   Color _symbolColor(int index) {
@@ -328,6 +336,22 @@ class _ChildScreenState extends ConsumerState<ChildScreen>
             
             // EMERGENCY SECTION
             Padding(
+              padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_rounded, color: AppTheme.danger, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Emergency',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.danger,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
               padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 12),
               child: Row(
                 children: [
@@ -365,15 +389,20 @@ class _ChildScreenState extends ConsumerState<ChildScreen>
                     );
                   }
 
-                  final visibleSymbols = symbols.where((symbol) {
-                    final roomName = (symbol['room_name'] as String?)?.trim();
-                    if (roomName == null || roomName.isEmpty) {
-                      return true;
-                    }
-                    return roomName.toLowerCase() == roomState.currentRoom.toLowerCase();
-                  }).toList();
+                  // Sort symbols: Current room first, then global, then other rooms
+                  final sortedSymbols = List<Map<String, dynamic>>.from(symbols);
+                  sortedSymbols.sort((a, b) {
+                    final roomA = (a['room_name'] as String?)?.trim().toLowerCase() ?? '';
+                    final roomB = (b['room_name'] as String?)?.trim().toLowerCase() ?? '';
+                    final current = roomState.currentRoom.toLowerCase();
+                    
+                    int scoreA = roomA == current ? 0 : (roomA == '' ? 1 : 2);
+                    int scoreB = roomB == current ? 0 : (roomB == '' ? 1 : 2);
+                    
+                    return scoreA.compareTo(scoreB);
+                  });
 
-                  final listForGrid = visibleSymbols.isNotEmpty ? visibleSymbols : symbols;
+                  final listForGrid = sortedSymbols;
 
                   return RefreshIndicator(
                     onRefresh: () async {
